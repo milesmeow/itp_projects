@@ -1,0 +1,9 @@
+-- clicking to set your colors
+
+-- this is is just an example.  This script is on all the color cubes that you can click
+
+
+on mouseUp
+  -- set the color of the 1st guess
+  set the forecolor of sprite 18 to the forecolor of sprite 5
+end

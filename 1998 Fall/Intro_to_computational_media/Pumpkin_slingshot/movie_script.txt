@@ -1,0 +1,287 @@
+--Movie script for pumpkin throw game
+
+--Fall 1999, ITP, James Tu
+--Intro to Computational Media
+
+on startMovie
+  clearglobals
+  global FlyUpperLimit, FlyLowerLimit, WitchSpriteNum, NumOfWitches, WitchSpriteList, PumpkinHStep, PumpkinVstep, PumpkinSpriteNum, PostsSpriteNum, PumpkinOrigWidth, PumpkinOrigHeight, GravityVStep, PumpkinOrigLoc, WitchOrigWidth, WitchOrigHeight
+  
+  -- Initialize the sprite list...WitchSpriteList
+  set WitchSpriteList = []
+  set FlyUpperLimit = 50
+  set FlyLowerLimit = 150
+  set WitchSpriteNum = 20
+  set WitchOrigWidth = 75
+  set WitchOrigHeight = 75
+  set PostsSpriteNum = 11
+  set PumpkinSpriteNum = 14
+  set PumpkinOrigWidth = the width of sprite PumpkinSpriteNum
+  set PumpkinOrigHeight = the height of sprite PumpkinSpriteNum
+  set PumpkinOrigLoc = the loc of sprite PumpkinSpriteNum
+  set GravityVStep = 1.2
+  
+  set the visible of sprite 2 = true -- show the Start Button
+  repeat with i = 3 to 30
+    set the ink of sprite i = 36  -- background transparent
+  end repeat
+end
+
+
+
+
+---------------------------------------------
+-------------- Custom Handlers --------------
+---------------------------------------------
+
+
+-- Initializes the screen and the Witch list
+on Initialize
+  global WitchSpriteNum, NumOfWitches, WitchSpriteList, PumpkinHStep, PumpkinVstep, PumpkinSpriteNum, WitchOrigWidth, WitchOrigHeight
+  
+  set NumOfWitches = 5
+  set PumpkinHStep = 0
+  set PumpkinVStep = 0
+  set the visible of sprite PumpkinSpriteNum = True
+  
+  -- Put Witches into WitchSpriteList
+  -- The speed, HStep and VStep will be random
+  
+  repeat with j = (WitchSpriteNum) to (WitchSpriteNum + NumOfWitches -1)
+    
+    set tempH = (random (7)+8)* (random (3)-2)
+    repeat while tempH = 0
+      set tempH = (random (7)+8)* (random (3)-2)
+    end repeat
+    set tempV = (random (15) - 7)
+    repeat while tempV = 0
+      set tempV = (random (15) - 7)
+    end repeat
+    
+    set tempList = [j, tempH, tempV ]
+    set the puppet of sprite j = TRUE  -- to allow Lingo to control the sprite
+    if getaProp (tempList, 2) >= 0 then
+      set the member of sprite j = "witch right"
+    else 
+      set the member of sprite j = "witch left"
+    end if
+    set the width of sprite j = WitchOrigWidth
+    set the height of sprite j = WitchOrigHeight
+    set the visible of sprite j = TRUE
+    set the ink of sprite j = 36 -- transparent
+    set the loc of sprite j = point (random (640), random (100) + 50)
+    setAt (WitchSpriteList, j - 19, tempList)
+    updatestage
+  end repeat
+end
+
+
+
+-- Check to see if the game is over...i.e. no more witches
+on checkgameover
+  global WitchSpriteNum, NumOfWitches
+  set gameover = true
+  repeat with i = WitchSpriteNum to (WitchSpriteNum + NumOfWitches - 1)
+    if the membernum of sprite i <> 0 then
+      set gameover = false
+    end if
+  end repeat
+  if gameover then
+    -- do something cool
+    set the visible of sprite 2 = true
+  end if
+end
+
+
+
+-- Updates the positions of all sprites on the screen
+-- Witches and Pumpkin (only if it's been released from the slingshot)
+on updateAllSprites
+  global WitchSpriteList, PumpkinSpriteNum, PumpkinHStep, PumpkinVstep, GravityVStep
+  
+  -- repeat the loop for each item in the list of sprites
+  -- We are moving them to their next position
+  
+  -- The sprites in the WitchSpriteList
+  repeat with j = 1 to ( count(WitchSpriteList) )
+    -- read entry j from list
+    set templist = getaprop (WitchSpriteList, j)
+    set tempSpriteNum = getaprop (templist, 1)
+    if (the membernum of sprite tempSpriteNum) <> 0 then
+      set tempHStep = getaprop (templist, 2)
+      set tempVStep = getaprop (templist, 3)
+      moveSprite (tempSpriteNum, tempHStep, tempVStep)
+    end if
+    
+    -- Move the Pumpkin when it's been shot...HStep and Vstep > 0
+    -- Add a gravity effect to the VStep
+    
+    
+    moveSprite (PumpkinSpriteNum, PumpkinHStep, PumpkinVStep)
+    -- Vary the size of the pumpkin to give it the illusion of moving away
+    if PumpkinHStep <> 0 or PumpkinVStep <> 0 then
+      set the width of sprite PumpkinSpriteNum = the width of sprite PumpkinSpriteNum - 1
+      set the height of sprite PumpkinSpriteNum = the height of sprite PumpkinSpriteNum - 1
+    end if
+    -- update the stretching of the slingshot when the pumpkin is shot
+    updateSling (the loch of sprite PumpkinSpriteNum, the locv of sprite PumpkinSpriteNum)
+    
+  end repeat
+end
+
+
+-- General routine to move a particular sprite
+-- Bounces the witches within the boundaries of a certain rectangle
+on moveSprite pSpriteNum, pHStepSize, pVStepSize
+  global FlyUpperLimit, FlyLowerLimit, WitchSpriteList
+  -- Note that the Step size can actually be a negative number
+  
+  -- Change H location
+  set the loch of sprite pSpriteNum = the loch of sprite pSpriteNum + pHStepSize
+  -- Takes care of the H situations where the sprite will move off the stage
+  
+  if the loch of sprite pSpriteNum > (the stageright - the stageleft) then
+    set the loch of sprite pSpriteNum = 0
+  else
+    if the loch of sprite pSpriteNum < 0 then
+      set the loch of sprite pSpriteNum = (the stageright - the stageleft)
+    end if
+  end if
+  
+  -- Change V location
+  set the locv of sprite pSpriteNum = the locv of sprite pSpriteNum + pVStepSize
+  -- Takes care of the V situations where the sprite will move off the stage
+  -- Make it bounce back
+  
+  if pSpriteNum <> 14 then -- bounce if the sprite is not the pumpkin
+    if (the locv of sprite pSpriteNum > FlyLowerLimit) or (the locv of sprite pSpriteNum < FlyUpperLimit) then
+      set templist = getaprop (WitchSpriteList, pSpriteNum - 19)
+      set tempVStep = (getaprop (templist, 3))* -1 --flips the direction
+      setAt (templist, 3, tempVStep)
+      setAt (WitchSpriteList, pSpriteNum - 19, templist)
+    end if
+  end if
+end
+
+
+-- Preparing for a shot (i.e. user is dragging around the pumpkin)
+on prepareShot
+  global PumpkinSpriteNum
+  repeat while the stilldown 
+    
+    set temploch = the mouseh
+    set templocv = the mousev
+    
+    -- move the pupmkin
+    set the loc of sprite PumpkinSpriteNum = updateSling (temploch, templocv)
+    
+    -- keep the witches moving...o/w they will only move at the end of a frame
+    updateAllSprites
+    updatestage
+    starttimer    -- put a delay so that the witches won't speed up b/c of repeat loop
+    repeat while the timer < 5  
+      nothing
+    end repeat
+  end repeat
+end
+
+
+-- Updates the stretch and the position of the sling
+on updateSling temploch, templocv
+  global PostsSpriteNum, PumpkinSpriteNum
+  
+  -- Prevent the sling from streching beyond the left and right of the posts
+  if temploch <= (the left of sprite PostsSpriteNum) + 10 then  
+    set temploch = (the left of sprite PostsSpriteNum) + 10
+  end if
+  if temploch >= (the right of sprite PostsSpriteNum) - 10 then
+    set temploch = (the right of sprite PostsSpriteNum) - 10
+  end if
+  
+  -- Prevent the sling from streching beyond the top of the sling bands
+  if templocv <= the top of sprite 12 + 5 then  -- 12 is one of the bands
+    set templocv = the top of sprite 12 + 5
+  end if
+  
+  -- stretch the sling
+  set the rect of sprite 12 = rect (the left of sprite 12, the top of sprite 12, temploch, templocv)
+  set the rect of sprite 13 = rect (temploch, the top of sprite 13, the right of sprite 13, templocv)
+  
+  return point(temploch, templocv)  -- return the new position of the pumpkin
+  
+end
+
+
+
+-- When the user release the pumpkin, we have to calculate the speed of the pumpkin
+on releaseSling
+  global  PumpkinHStep, PumpkinVStep, PumpkinSpriteNum, PostsSpriteNum, ShotFired
+  -- Calculate the difference in position between the center of the posts
+  -- and the location of the pumpkin...this will determine the speed of the pumpkin
+  
+  puppetsound 1, "whoosh1"
+  set PumpkinHStep = (the loch of sprite PostsSpriteNum - the loch of sprite PumpkinSpriteNum) / 10
+  set PumpkinVStep = (the locv of sprite PostsSpriteNum - the locv of sprite PumpkinSpriteNum) / 10
+  
+end
+
+
+
+-- Checks the position of pumpkin to see if it hit a Witch
+on checkPosition
+  global WitchSpriteList, PumpkinSpriteNum, numOfWitches, WitchSpriteNum
+  
+  -- Check to see if pumpkin hit a witch...repeat for all witches still on screen
+  
+  repeat with k = WitchSpriteNum to (WitchSpriteNum + numOfWitches - 1)  -- repeats for each Witch
+    if the memberNum of sprite k <> 0 then
+      if inside (the loc of sprite PumpkinSpriteNum, the rect of sprite k) then
+        -- make the pumpkin disappear
+        set the visible of sprite PumpkinSpriteNum = FALSE
+        updatestage
+        
+        -- play an explosion sound
+        puppetsound 2, "hit"&(random(3))
+        
+        -- make the witch disappear
+        set the member of sprite k = "smoke"
+        repeat with i = 1 to 15
+          set the width of sprite k = the width of sprite k + 8
+          set the height of sprite k = the width of sprite k + 8
+          starttimer
+          updatestage
+        end repeat
+        
+        repeat with i = 1 to 15
+          set the width of sprite k = the width of sprite k - 8
+          set the height of sprite k = the width of sprite k - 8
+          updatestage
+        end repeat
+        
+        set the membernum of sprite k = 0
+        set the visible of sprite k = FALSE
+        
+        updatestage
+        resetPumpkin
+        updatestage
+      end if
+    end if
+  end repeat
+  
+  -- If the pumpkin moved off the screen, reset the pumpkin
+  if the locv of sprite PumpkinSpriteNum < 0 then
+    resetPumpkin
+  end if
+  
+  
+end 
+
+on resetpumpkin
+  global PumpkinSpriteNum, PumpkinOrigLoc, PumpkinHStep, PumpkinVStep, PumpkinOrigWidth, PumpkinOrigHeight
+  set the loc of sprite PumpkinSpriteNum = PumpkinOrigLoc
+  set the visible of sprite PumpkinSpriteNum = True
+  set PumpkinHstep = 0
+  set PumpkinVstep = 0
+  set the width of sprite PumpkinSpriteNum = PumpkinOrigWidth
+  set the height of sprite PumpkinSpriteNum = PumpkinOrigHeight
+end

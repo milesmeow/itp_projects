@@ -1,0 +1,53 @@
+-- checking colors
+
+on mouseUp
+  -- check the guesses and display messages to the player
+  
+  -- The player guesses everything right
+  if (the forecolor of sprite 18 = the forecolor of sprite 2) and (the forecolor of sprite 19 = the forecolor of sprite 3) and (the forecolor of sprite 20 = the forecolor of sprite 4) then
+    
+    put "YOU GUESSED RIGHT!  YOU WIN!" into member "message window"
+    -- Hide the question mark blocks
+    set the visible of sprite 14 to false
+    set the visible of sprite 15 to false
+    set the visible of sprite 16 to false
+    
+    -- Show the Master Blocks
+    set the visible of sprite 2 to true
+    set the visible of sprite 3 to true
+    set the visible of sprite 4 to true
+    
+    put RETURN after member "message window"
+    put "================" after member "message window"
+    put RETURN after member "message window"
+    put "=YOU GOT LUCKY!=" after member "message window"
+    put RETURN after member "message window"
+    put "================" after member "message window"
+    put RETURN after member "message window"
+    
+  else
+    set number_colors = 0
+    -- Check to see if some colors are in the right place
+    if the forecolor of sprite 18 = the forecolor of sprite 2 then
+      set number_colors = number_colors + 1
+    end if
+    if the forecolor of sprite 19 = the forecolor of sprite 3 then
+      set number_colors = number_colors + 1
+    end if
+    if the forecolor of sprite 20 = the forecolor of sprite 4 then
+      set number_colors = number_colors + 1
+    end if
+    
+    put "You have"&&number_colors&&"right" into member "message window"
+    
+    put RETURN after member "message window"
+    put "===============" after member "message window"
+    put RETURN after member "message window"
+    put "===TRY AGAIN===" after member "message window"
+    put RETURN after member "message window"
+    put "===============" after member "message window"
+    put RETURN after member "message window"
+    
+  end if
+  
+end

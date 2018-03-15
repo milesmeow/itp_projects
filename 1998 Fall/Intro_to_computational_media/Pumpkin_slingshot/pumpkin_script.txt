@@ -1,0 +1,9 @@
+---script for dragging an slingshot effect for pumpkin
+
+on mouseDown
+  prepareShot
+end
+
+on mouseUp
+  releaseSling
+end

@@ -1,0 +1,6 @@
+--- script for start button
+
+on mouseUp
+  initialize -- call the initialize handler
+  set the visible of sprite 2 = false
+end

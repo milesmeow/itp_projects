@@ -1,0 +1,368 @@
+--This is the movie script. Global functions and variables go here.
+
+-- 1999, Fall Semester ITP, James Tu
+-- This is an attempt to copy Asteroids...one of the first popular
+-- arcade games
+
+-- This is an attempt to copy Asteroids...one of the first popular
+-- arcade games
+
+-- You are only allowed to have 8 photons on the screen at any instant in time
+-- When you crash into a space ball you lose  
+
+on startMovie
+  set the visible of sprite 9 = true
+  set the visible of sprite 10 = true
+  clearglobals
+  puppetTempo 15
+  global ShipSpriteList, BallSpriteList, ShipSpriteNum, NumOfPhotons, PhotonSpeed, ShipThrustSpeed, NumOfBalls, NumOfShipCasts
+  
+  -- Assume that the Ship's Sprite Number comes before all the other moveable
+  -- sprites...i.e. the spaceballs and the photons
+  -- For example, if the ship's sprite number is 11, then the next spaceball will
+  -- be 12, and so on.
+  
+  set NumOfShipCasts = 16 -- there are 16 cast members for different positions
+  set ShipSpriteNum = 11
+  set ShipThrustSpeed = 5
+  
+  set NumOfPhotons = 8
+  set PhotonSpeed = 8
+  
+  set NumOfBalls = 8
+  
+  -- Initialize the 2 sprite lists...ShipSpriteList and BallSpriteList
+  set ShipSpriteList = []
+  set BallSpriteList = []  
+  
+  
+end
+
+on InitializeEnvironment
+  global ShipSpriteList, BallSpriteList, ShipSpriteNum, NumOfPhotons, PhotonSpeed, ShipThrustSpeed, NumOfBalls
+  
+  set the visible of sprite 9 = false
+  set the visible of sprite 10 = false  
+  
+  -- The items in the smaller list keep properties of the sprite
+  -- They are...[Sprite Number, Speed, H Step, V Step]
+  -- We'll put these small lists as items in the 2 large lists
+  
+  -- Put small lists into ShipSpriteList
+  set tempList = [ShipSpriteNum, 0, 0]  -- entry for the ship
+  set the ink of sprite ShipSpriteNum = 36 -- background transparent
+  setAt (ShipSpriteList, 1, tempList)
+  repeat with i = (ShipSpriteNum + 1) to (ShipSpriteNum + numOfPhotons)
+    set tempList = [i, 0, 0] -- entries for each photon
+    setAt (ShipSpriteList, i - 10, tempList)
+  end repeat
+  
+  -- Put small lists into BallSpriteList
+  -- The speed, HStep and VStep will be random
+  repeat with j = (ShipSpriteNum + numOfPhotons + 1) to (ShipSpriteNum + numOfPhotons + NumOfBalls)
+    set tempList = [j, random (20)-9, random(20)-9 ] -- set the speed here...
+    set the puppet of sprite j = TRUE  -- to allow Lingo to control the sprite
+    set the memberNum of sprite j = 26
+    set the visible of sprite j = TRUE
+    set the ink of sprite j = 36 -- transparent
+    
+    
+    -- position the asteroids so that you don't die easily when the game starts
+    if (random (10) > 5) then
+      set tempx = random(100)
+    else
+      set tempx = 640 - random(100)
+    end if
+    
+    set the loc of sprite j = point (tempx, random (480))
+    
+    
+    setAt (BallSpriteList, j - 19, tempList)
+  end repeat
+  
+  -- After we initialize all, we can show the Ship.  If we did this before we 
+  -- initialized, if we are restarting a game, the ship would be in motion because
+  -- the list was not cleared first...so we are showing the ship as the last step
+  -- Also, put the ship in the middle of the screen
+  set the loc of sprite ShipSpriteNum = point ((the stageright - the stageleft)/2, (the stagebottom - the stagetop)/2)
+  set the membernum of sprite ShipSpriteNum = 5
+  set the visible of sprite ShipSpriteNum = TRUE
+  
+end
+
+
+---------------------------------------------
+-------------- Custom Handlers --------------
+---------------------------------------------
+
+-- Take the user keyboard input and update the ship's graphics
+on navigateSprite pSpriteNum, pMaxCastNum, pMinCastNum
+  -- put the key
+  -- put the keycode
+  case (the keycode) of
+    123: -- the left arrow
+      if the memberNum of sprite pSpriteNum = pMaxCastNum then
+        set the memberNum of sprite pSpriteNum = pMinCastNum
+      else  
+        set the memberNum of sprite pSpriteNum = (the memberNum of sprite pSpriteNum) + 1
+      end if  
+    124: -- the right arrow
+      if the memberNum of sprite pSpriteNum = pMinCastNum then
+        set the memberNum of sprite pSpriteNum = pMaxCastNum
+      else  
+        set the memberNum of sprite pSpriteNum = (the memberNum of sprite pSpriteNum) - 1
+      end if      
+    125: -- the down arrow
+      nothing
+    126: -- the up arrow
+      thrustShip pSpriteNum
+    49:
+      firePhoton
+    otherwise nothing
+  end case
+end
+
+
+-- General routine to move a particular sprite
+on moveSprite pSpriteNum, pHStepSize, pVStepSize  
+  -- Note that the Step size can actually be a negative number
+  
+  -- Change H location
+  set the loch of sprite pSpriteNum = the loch of sprite pSpriteNum + pHStepSize
+  -- Takes care of the H situations where the sprite will move off the stage
+  if the loch of sprite pSpriteNum > (the stageright - the stageleft) then
+    set the loch of sprite pSpriteNum = 0
+  else
+    if the loch of sprite pSpriteNum < 0 then
+      set the loch of sprite pSpriteNum = (the stageright - the stageleft)
+    end if
+  end if
+  
+  
+  -- Change V location
+  set the locv of sprite pSpriteNum = the locv of sprite pSpriteNum + pVStepSize
+  -- Takes care of the V situations where the sprite will move off the stage
+  if the locv of sprite pSpriteNum > (the stagebottom - the stagetop) then
+    set the locv of sprite pSpriteNum = 0
+  else
+    if the locv of sprite pSpriteNum < 0 then
+      set the locv of sprite pSpriteNum = (the stagebottom - the stagetop)
+    end if
+  end if
+end
+
+
+
+
+-- Updating the Position of All sprites on the screen
+on updateAllSprites
+  global ShipSpriteList, BallSpriteList
+  
+  -- repeat the loop for each item in the 2 list of sprites
+  -- We are moving them to their next position
+  
+  -- First the sprites in the ShipSpriteList
+  repeat with i = 1 to ( count(ShipSpriteList) )
+    -- read entry i from list
+    set templist = getaprop (ShipSpriteList, i)
+    set tempSpriteNum = getaprop (templist, 1)
+    if (the membernum of sprite tempSpriteNum) <> 0 then
+      set tempHStep = getaprop (templist, 2)
+      set tempVStep = getaprop (templist, 3)
+      moveSprite (tempSpriteNum, tempHStep, tempVStep)
+    end if
+  end repeat
+  
+  -- Now the sprites in the BallSpriteList
+  repeat with j = 1 to ( count(BallSpriteList) )
+    -- read entry j from list
+    set templist = getaprop (BallSpriteList, j)
+    set tempSpriteNum = getaprop (templist, 1)
+    if (the membernum of sprite tempSpriteNum) <> 0 then
+      set tempHStep = getaprop (templist, 2)
+      set tempVStep = getaprop (templist, 3)
+      moveSprite (tempSpriteNum, tempHStep, tempVStep)
+    end if
+    
+  end repeat
+end
+
+
+
+
+on thrustShip
+  global ShipSpriteList, ShipSpriteNum, ShipThrustSpeed
+  
+  --  puppetsound 1, "thrust sound"
+  -- Determine Direction
+  set tempShipList = calculateDirection (ShipSpriteNum)
+  set tempHStep = (getaprop (tempShipList, 2)) * ShipThrustSpeed
+  set tempVStep = (getaprop (tempShipList, 3)) * ShipThrustSpeed
+  
+  -- Add H and V Step to Current H and V Step
+  set shipcurrlist = getaprop (ShipSpriteList, 1)
+  set shipHStep = getaprop (shipcurrlist, 2)
+  set shipVStep = getaprop (shipcurrlist, 3)
+  
+  set tempHStep = tempHStep + shipHStep
+  set tempVStep = tempVStep + shipVStep
+  
+  -- Update the list with the new value
+  set tempShipList = [ ShipSpriteNum, tempHStep, tempVStep]
+  setAt ShipSpriteList, (ShipSpriteNum - 10) ,tempShipList  
+end
+
+
+-- Make a photon visible on the screen and set the speed and direction relative
+-- to the ship's
+
+on firePhoton
+  global ShipSpriteList, ShipSpriteNum, NumOfPhotons, PhotonSpeed
+  
+  --update the list so that the speed, hstep and vstep have values
+  
+  -- shoot a photon, look for an empty sprite to place the new photon
+  -- if all 8 sprites are filled, do nothing
+  repeat with i = (ShipSpriteNum + 1) to (ShipSpriteNum + NumOfPhotons)
+    if the memberNum of Sprite i = 0 then -- there's an available sprite to hold a photon
+      -- make a sound
+      puppetsound 1, "photon sound"
+      
+      -- Update the stage w/ a photon
+      set the puppet of sprite i = TRUE  -- to allow Lingo to control the sprite
+      set the memberNum of Sprite i = 28
+      set the visible of sprite i = TRUE
+      set the ink of sprite i = 36
+      updatestage
+      -- The photon should originate from where the ship is
+      set the loc of sprite i = the loc of sprite ShipSpriteNum
+      
+      -- Calculate the Direction, i.e. HStep and VStep of the Photon
+      -- by calling a handler...the handler returns a list
+      -- [sprite number, HStep, VStep]
+      set tempPhotonList = calculateDirection (i)
+      set tempHStep = (getaprop (tempPhotonList, 2)) * PhotonSpeed
+      set tempVStep = (getaprop (tempPhotonList, 3)) * PhotonSpeed
+      
+      -- Add it to the HStep and VStep of the Ship to get the relative Steps
+      set shiptemplist = getaprop (ShipSpriteList, 1)
+      set shipHStep = getaprop (shiptemplist, 2)
+      set shipVStep = getaprop (shiptemplist, 3)
+      
+      set tempHStep = tempHStep + shipHStep
+      set tempVStep = tempVStep + shipVStep
+      
+      -- Populate the ShipSpriteList with the photon's properties
+      set templist = [ i, tempHStep, tempVStep]
+      setAt ShipSpriteList, (i - 10) ,templist  -- (i-10) is the index # to access list     
+      exit -- exit the handler
+    end if
+  end repeat
+  
+end
+
+
+-- Checks the position of sprites on the screen to see if they've collided
+on checkPosition
+  global ShipSpriteList, BallSpriteList, ShipSpriteNum, numOfPhotons, numOfBalls
+  
+  -- First Check to see if the Ship crashed into a Ball
+  if the memberNum of sprite ShipSpriteNum <> 0 then
+    repeat with i = (ShipSpriteNum + numOfPhotons + 1) to (ShipSpriteNum + numOfPhotons + numOfBalls)
+      if the membernum of sprite i <> 0 then
+        
+        if inside ( the loc of sprite ShipSpriteNum, the rect of sprite i) then
+          -- play an explosion sound
+          puppetsound 1, "explode sound"
+          set the member of sprite ShipSpriteNum = "explosion"
+          repeat with i = 1 to 15
+            set the width of sprite ShipSpriteNum = the width of sprite ShipSpriteNum + 2
+            set the height of sprite ShipSpriteNum = the height of sprite ShipSpriteNum + 2
+            updatestage
+          end repeat
+          set the memberNum of sprite ShipSpriteNum = 0
+          -- reset the size of the Sprite
+          set the width of sprite ShipSpriteNum = 23
+          set the height of sprite ShipSpriteNum = 31
+          exit repeat  -- exit the repeat loop b/c there's no need to check further
+        end if
+        
+      end if
+    end repeat
+  end if
+  
+  -- Then Check to see if a photon has hit a Ball
+  set NoMoreSpaceBalls = true
+  repeat with j = (ShipSpriteNum + 1) to (ShipSpriteNum + numOfPhotons) -- Repeat for each photon on the screen
+    if the memberNum of sprite j <> 0 then 
+      repeat with k = (ShipSpriteNum + numOfPhotons + 1) to (ShipSpriteNum + numOfPhotons + numOfBalls)  -- repeats for each SpaceBall
+        if the memberNum of sprite k <> 0 then
+          set NoMoreSpaceBalls = false
+          if sprite j within k then
+            -- play an explosion sound
+            puppetsound 1, "disintegrate sound"
+            -- make the spaceball disappear
+            set the memberNum of sprite k = 0
+            set the visible of sprite k = FALSE
+            -- make the photon disappear
+            set the memberNum of sprite j = 0
+            set the visible of sprite j = FALSE
+            updatestage
+          end if
+        end if
+        
+      end repeat
+    end if
+  end repeat
+  
+end 
+
+
+-- I've divided the images of the ship to point in even increments within 360 degrees
+-- to help me calculate the direction/speed
+-- The sine and cosine functions take in radians as a measure of angles
+-- There are 2*pi radians in 360 degrees
+-- The ship cast member numbers start at 1 and goes to 16, so the angle of the ship
+-- is equal to (2*pi)*(member number)/16
+-- Sine and Cosine will return a value between 1 and -1
+-- This function will return a list [spritenumber, HStep, VStep]
+
+on calculateDirection pspritenum
+  global ShipSpriteNum, NumofShipCasts
+  set angle = 2*pi*((the memberNum of sprite ShipSpriteNum)-1)/NumOfShipCasts
+  set tempHStep = cos(angle)
+  set tempVStep = sin(angle) * -1
+  -- multiply by -1 because the stage is organized with 0 at the top and positive numbers
+  -- as we go towards the bottom.
+  -- Sine will return a positive number, if the ship is pointing up and a negative number
+  -- when the ship is pointing down
+  
+  return [pspritenum, tempHStep, tempVStep]
+  
+end 
+
+
+on checkGameOver
+  global ShipSpriteNum, NumOfPhotons, NumOfBalls
+  
+  set shipgameover = true
+  set ballgameover = true
+  
+  -- if the game is over, ship destroyed, show start button
+  if the memberNum of sprite ShipSpriteNum <> 0 then
+    set shipgameover = false
+  end if
+  
+  repeat with i = (ShipSpriteNum + NumOfPhotons + 1) to (ShipSpriteNum + NumOfPhotons + NumOfBalls )
+    if the memberNum of sprite i <> 0 then
+      set ballgameover = false
+    end if
+  end repeat
+  
+  if shipgameover or ballgameover then
+    set the visible of sprite 9 = true
+    set the visible of sprite 10 = true
+  end if
+  
+end
+

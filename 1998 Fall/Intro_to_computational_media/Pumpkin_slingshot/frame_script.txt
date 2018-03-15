@@ -1,0 +1,8 @@
+--frame script...loops every frame
+
+on exitFrame
+  checkGameOver
+  updateAllSprites
+  checkPosition
+  go the frame
+end

@@ -1,0 +1,37 @@
+-- initialize
+
+on beginSprite
+  
+  puppetsound 1, "jeopardy"
+  
+  --turn off the master blocks
+  set the visible of sprite 2 to false
+  set the visible of sprite 3 to false
+  set the visible of sprite 4 to false
+  
+  --turn on the question mark blocks
+  set the visible of sprite 14 to true
+  set the visible of sprite 15 to true
+  set the visible of sprite 16 to true
+  
+  --generate the first random color
+  set the forecolor of sprite 5 = random (256) - 1
+  set the forecolor of sprite 6 = the forecolor of sprite 5
+  set the forecolor of sprite 7 = the forecolor of sprite 5
+  
+  --generate the second random color
+  set the forecolor of sprite 8 = random (256) - 1
+  set the forecolor of sprite 9 = the forecolor of sprite 8
+  set the forecolor of sprite 10 = the forecolor of sprite 8
+  
+  --generate the third random color
+  set the forecolor of sprite 11 = random (256) - 1
+  set the forecolor of sprite 12 = the forecolor of sprite 11
+  set the forecolor of sprite 13 = the forecolor of sprite 11
+  
+  --set the colors of the master blocks, colors could repeat
+  set the forecolor of sprite 2 = the forecolor of sprite (4 + random (9))
+  set the forecolor of sprite 3 = the forecolor of sprite (4 + random (9))
+  set the forecolor of sprite 4 = the forecolor of sprite (4 + random (9))
+  
+end

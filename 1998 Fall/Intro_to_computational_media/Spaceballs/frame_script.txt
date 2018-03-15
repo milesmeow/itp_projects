@@ -1,0 +1,20 @@
+--This is the Frame script...runs every frame of the movie...basically it continually loops
+
+
+on exitFrame
+  checkGameOver 
+  updateAllSprites
+  checkPosition
+  go the frame
+end
+
+
+-- Handles the user's keyboard input for flying the ship
+on keydown
+  set spritenumvar = 11
+  set maxcastnum = 16
+  set mincastnum = 1
+  if the memberNum of sprite 11 <> 0 then
+    navigateSprite (spritenumvar, maxcastnum, mincastnum)
+  end if
+end
