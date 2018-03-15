@@ -1,0 +1,9 @@
+--RGB slider ring
+
+--Spring 2000, ITP, James Tu
+
+global drag_rotate_offset, gRGBring
+on mousedown
+  drag_rotate_offset = (mouseangle(sprite(the clickon).loc)) - sprite(the clickon).rotation
+  gRGBring = the clickon
+end

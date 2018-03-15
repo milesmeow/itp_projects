@@ -1,0 +1,40 @@
+-- control button
+
+--Spring 2000, ITP, James Tu
+
+global gAnimate, gEraser,gNumOfObjChoices, gControlMode
+on mouseUp
+  
+  case gControlMode of
+    "manual rotate": --user just clicked drag rotate
+      --toggle mode to "move"
+      member("mouse function").text = "Move"
+      gControlMode = "move"
+      
+      --8/5
+      --I updated this for a contest so that the resize is not there...it's a little hokey!
+      --      gControlMode = "move"
+      
+    "move": --user just clicked move 
+      --toggle mode to "resize"
+      member("mouse function").text = "Drag Rotate"
+      gControlMode = "manual rotate"
+      
+      --    "resize": --user just clicked resize 
+      --      --toggle mode to "manual rotate"
+      --      member("mouse function").text = "Drag Rotate"
+      --      gControlMode = "manual rotate"
+      
+  end case
+  
+  --move the yellow rectangle off the stage
+  sprite(106).loch = -800
+end
+
+on mouseenter
+  (member "mouse function").color = color (#rgb, 255,255,255)
+end
+
+on mouseleave
+  (member "mouse function").color = color (#rgb, 170,190,255)
+end

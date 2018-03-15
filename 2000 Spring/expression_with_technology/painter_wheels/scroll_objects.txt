@@ -1,0 +1,20 @@
+--scroll through objects
+
+--Spring 2000, ITP, James Tu
+
+global gEraser, gfirstmember, glastmember
+on mouseUp
+  sprite (gEraser+1).membernum = sprite (gEraser+1).membernum + 1
+  if sprite (gEraser+1).membernum = glastmember + 1 then
+    sprite (gEraser+1).membernum = gfirstmember
+  end if
+end
+
+
+on mouseenter
+  (member "show objects").color = color (#rgb, 255,255,255)
+end
+
+on mouseleave
+  (member "show objects").color = color (#rgb, 170,190,255)
+end

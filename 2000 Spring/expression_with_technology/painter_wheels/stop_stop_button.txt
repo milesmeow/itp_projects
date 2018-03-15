@@ -1,0 +1,26 @@
+--start/stop motion button
+
+--Spring 2000, ITP, James Tu
+
+global gAnimate
+on mouseUp
+  --toggle start and stop animation flag each time the button is pressed
+  gAnimate = not(gAnimate)
+  
+  --update the label of the button
+  if gAnimate then
+    member("stop motion").text = "Stop Motion"
+  else
+    member("stop motion").text = "Start Motion"
+  end if
+  
+end
+
+
+on mouseenter
+  (member "stop motion").color = color (#rgb, 255,255,255)
+end
+
+on mouseleave
+  (member "stop motion").color = color (#rgb, 170,190,255)
+end

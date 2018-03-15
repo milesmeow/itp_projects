@@ -1,0 +1,37 @@
+-- add object button
+
+--Spring 2000, ITP, James Tu
+
+global nextavailsprite, gDragoffseth, gDragoffsetv, gObjectlist, gAddingObject, current_object
+on mousedown
+  
+  --copy this sprite into the next available sprite channel
+  sprite(nextavailsprite).member = sprite(the clickon).member
+  sprite(nextavailsprite).loc = sprite(the clickon).loc
+  sprite(nextavailsprite).ink = sprite(the clickon).ink
+  sprite(nextavailsprite).color = sprite(the clickon).color
+  
+  --  --assign scripts to the new sprite
+  --  x = new(script "script assigned to birthed sprites")
+  --  add sprite(nextavailsprite).scriptInstanceList, x
+  
+  --birth an object
+  current_object = new (script "shape class", nextavailsprite)
+  add sprite(nextavailsprite).scriptInstanceList, current_object
+  addat gObjectlist, nextavailsprite, current_object
+  --  put sprite(nextavailsprite).scriptInstanceList
+  
+  --find the next available sprite channel
+  --increment the counter
+  nextavailsprite = nextavailsprite + 1
+  
+  gDragoffseth = the mouseh - sprite(the clickon).loch
+  gDragoffsetv = the mousev - sprite(the clickon).locv
+  
+  gAddingObject=true
+  
+end
+
+
+--The tricky thing is that the mouseup is handled by the parent script
+--that is instantiated!!!  That's why there isn't a mouseup here.

@@ -1,0 +1,155 @@
+--frame script
+
+--Spring 2000, ITP, James Tu
+
+global gAnimate, gObjectList, current_object, gOld_anglem, gAddingObject, gDragoffseth, ¬
+gDragoffsetv, gControlMode, gPaint, gEraser, gRGBring, drag_rotate_offset, gSaveTrailFlag
+
+on exitFrame
+  
+  --make the eraser invisible
+  if sprite(gEraser).visible = true then
+    sprite(gEraser).visible = false
+  end if
+  
+  if gAnimate then
+    repeat with i in gObjectList
+      if objectp(i) then
+        animate i
+        --        paint i, gPaint
+      end if
+    end repeat
+  end if
+  
+  
+  -- keep this in the exit frame so that animations can keep going while we update the drag_rotation or drag
+  if objectp(current_object) then --we have an object to process
+    --we are positioning our new object
+    if gAddingObject or gControlMode = "move" then
+      --we are positioning our new object or moving an existing one
+      drag (current_object, gDragoffseth, gDragoffsetv)
+    else
+      if gControlMode = "resize" then
+        --we are resizing        
+        if the mousedown then
+          resize current_object
+        end if
+      else
+        --we are drag rotating
+        if the mousedown then
+          drag_rotate current_object
+          --update the last angle so that later when we let go, we can calculate a new speed
+          gOld_angle = mouseangle(sprite(current_object.myspritenum).loc)
+        end if
+      end if
+    end if
+    
+  end if
+  
+  
+  --to handle the change of color
+  if gRGBring <> 0 then
+    -- drag_rotate_offset is a fixed value....calculated once, as soon as the user clicks on a ring
+    sprite(gRGBring).rotation = (mouseangle(sprite(gRGBring)) - drag_rotate_offset) mod 360
+    
+    
+    -- add 360 b/c we always want a positive value. Correct the case when the user spins it backwards first
+    -- later we'll mod it to 360 so our values will always be 360 or less
+    Rt = (sprite(112).rotation + 360) mod 360
+    Gt = (sprite(113).rotation + 360) mod 360
+    Bt = (sprite(114).rotation + 360) mod 360
+    
+    --    put "temp "&Rt&" "&Gt&" "&Bt
+    
+    
+    R = integer(255* (float(Rt)/360))
+    G = integer(255* (float(Gt)/360))
+    B = integer(255* (float(Bt)/360))
+    
+    --    put "real "&R&" "&G&" "&B
+    sprite(gEraser+1).color = color (#rgb, R, G, B)
+    
+    
+  end if
+  
+  go the frame
+  
+end
+
+
+--sometimes the mouse sticks to an object, hopefully moving the mouse up to the exit frame will catch it...
+on mouseup
+  
+  if objectp(current_object) then
+    --handles adding and moving modes
+    
+    --trying to add code to prevent an object from being drawn in the navigation area
+    if the mouseh <= 680 then
+      if gAddingObject = true or gControlMode = "move" then
+        -- check to see if this object is within the radius of the sprites on the screen
+        -- if it is, attach this object to the closest one and make this a children of it
+        --result = [ClosestParent,ClosestDistance ]
+        result = [0,1000] --initialize before we search
+        repeat with obj in gObjectList
+          if objectp(obj) then
+            -- Don't send a message to me...only to other objects
+            if obj <> current_object then
+              result = SearchForClosestParent (current_object, obj, result[1], result[2])
+            end if
+          end if
+        end repeat
+        --after the repeat loop ...we may have a parent that is the closest
+        --check to see if we actually have an valid object
+        if objectp(result[1]) then
+          AddParent current_object, result
+          AddChild result[1], current_object -- tell the parent object to add me
+        else
+          --we're not close to anyone...tell our parent, if we have one, to remove us from their children list
+          if objectp(current_object.myParent) then
+            RemoveChild (current_object.myParent, current_object)
+            current_object.myparent = 0 --dissassociate me from myparent
+          end if
+        end if
+        
+        
+        sprite(current_object.myspritenum).trails = gPaint
+        -- after the user let's go...handles situations when this sprite is first added  
+        
+        gAddingObject = false
+        
+      else
+        if gControlMode = "resize" then
+        else
+          -- allow this in the "manual rotate" mode and 
+        end if
+      end if
+    end if
+    
+    if gAnimate and gControlMode = "manual rotate"  then
+      -- we've just finished drag rotating...update angular velocity
+      -- set the new angular velocity based on user drag speed and direction
+      updatevelocity current_object
+    end if
+    
+    --continue with whatever the current_object was doing
+    current_object.pause_flag = false
+    
+    
+  end if
+  
+  
+  --reset the variables that is used for the current object for the mousedown
+  -- don't drag or drag rotate anymore
+  current_object = 0
+  drag_rotate_offset = 0
+  -- clear the move offset too
+  gDragoffsetv = 0
+  gDragoffseth = 0
+  
+  --clear the selected RGB ring too
+  gRGBring = 0
+  
+  --clear the saved Trails flag
+  gSaveTrailFlag = 0
+  
+end

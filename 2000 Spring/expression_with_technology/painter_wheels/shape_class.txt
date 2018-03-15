@@ -1,0 +1,228 @@
+--shape CLASS (parent script)
+--this is equivalent of implemented CLASSes in Director
+
+--Spring 2000, ITP, James Tu
+
+
+
+property myspritenum, pause_flag, angular_velocity, radius, mychildrenlist, myParent, angular_offset_from_parent, distance_from_parent
+
+global drag_rotate_offset,current_object, gOld_angle, gAddingObject, gObjectList¬
+,gstagewidth, gstageheight, gDragoffseth, gDragoffsetv, gControlMode, gAnimate, gPaint,¬
+gSaveTrailFlag
+
+on new me, pmyspritenum
+  me.myspritenum = pmyspritenum
+  
+  --choose a random rotation
+  blahlist = [-1,1,-1,1,1,-1,-1,1,-1,1,-1]
+  me.angular_velocity =5 * (blahlist[random(11)])
+  me.pause_flag = true
+  --set the radius of me...do I really need to?
+  me.radius = sprite(me.myspritenum).width/2 - 5
+  sprite(me.myspritenum).trails = gPaint --if Paint mode, then true, else False
+  me.mychildrenlist=[]
+  return me
+end
+
+on animate me
+  -- the mod 360 here keeps the rotation within 0 to 359
+  -- after a certain number Director will crash if we let it go past 360
+  -- just need to do it once here...everywhere else we can work with higher numbers
+  -- and this will reset it once we start rotating!
+  if me.pause_flag = false then
+    
+    sprite(me.myspritenum).rotation = (sprite(me.myspritenum).rotation + me.angular_velocity) mod 360
+    
+    -- update the position of my children
+    repeat with obj in me.mychildrenlist
+      --  set the rotation of sprite (obj.myspritenum) = the rotation of sprite(obj.myspritenum) + me.angular_velocity
+      tempangle = (sprite(me.myspritenum).rotation) + obj.angular_offset_from_parent
+      -- the child's position is relative to me
+      tempx = sprite(me.myspritenum).loch + cos(degToRad(tempangle)) * obj.distance_from_parent
+      tempy = sprite(me.myspritenum).locv + sin(degToRad(tempangle)) * obj.distance_from_parent
+      sprite(obj.myspritenum).loc = point(tempx, tempy)
+    end repeat
+  end if
+end
+
+on drag me, hoffset, voffset
+  sprite(me.myspritenum).loch = the mouseh - hoffset
+  sprite(me.myspritenum).locv = the mousev - voffset
+  
+  gSaveTrailFlag = sprite(me.myspritenum).trails -- save it so we can restore it later on mouseup
+  sprite(me.myspritenum).trails = false
+  
+  
+  --if they drag the sprite off the stage, remove it from our ObjectList
+  --  temp1 = sprite(me.myspritenum).width/2
+  --  temp2 = (sprite(me.myspritenum).height/2)
+  --  if (sprite (me.myspritenum).loch < (0 - temp1)) or¬
+--(sprite (me.myspritenum).loch > (gstagewidth + temp1)) or¬
+--(sprite (me.myspritenum).locv < (0 - temp2)) or¬
+--(sprite (me.myspritenum).locv > (gstageheight + temp2)) then
+  --    currentObject=0 --so dragging stops in the exit frame
+  --    sprite(me.myspritenum).loch = -800 --move it off stage
+  --    setat gObjectList, me.myspritenum, 0 --remove the object from the list
+  --  end if
+  --  
+end
+
+on resize me
+  
+  
+  --this is the best way to for a resize method
+  tleft = sprite(me.myspritenum).left
+  ttop = sprite(me.myspritenum).top
+  tright = sprite(me.myspritenum).right
+  tbottom = sprite(me.myspritenum).bottom
+  
+  if (the mouseh > sprite(me.myspritenum).right - 10)  and (the mouseh < sprite(me.myspritenum).right + 30) then
+    tright = the mouseh
+  end if
+  
+  if (the mousev > sprite(me.myspritenum).bottom - 10)  and (the mousev < sprite(me.myspritenum).bottom + 30) then
+    tbottom = the mousev
+  end if
+  
+  if (the mouseh < sprite(me.myspritenum).left + 10)  and (the mouseh > sprite(me.myspritenum).left - 30) then
+    tleft = the mouseh
+  end if
+  
+  if (the mousev < sprite(me.myspritenum).top + 10)  and (the mousev > sprite(me.myspritenum).top - 30) then
+    ttop = the mousev
+  end if
+  
+  sprite(me.myspritenum).rect = rect (tleft, ttop, tright, tbottom)
+  --update the yellow rect so the user can see the rect of the object
+  sprite(106).rect = sprite(me.myspritenum).rect
+  
+end
+
+
+on drag_rotate me
+  -- drag_rotate_offset is a fixed value....calculated once, as soon as the user clicks on a ring
+  sprite(me.myspritenum).rotation = mouseangle(sprite(me.myspritenum).loc) - drag_rotate_offset
+end
+
+on updatevelocity me
+  global gOld_angle
+  global vel -- for debugging
+  mangle = mouseangle(sprite(me.myspritenum).loc)
+  vel = mangle-gOld_angle
+  
+  -- limits the velocity to a constant
+  if vel >= 0 then
+    me.angular_velocity = min( [(mangle - gOld_angle), 20] )
+  else
+    me.angular_velocity = max( [(mangle - gOld_angle), -20] )
+  end if
+end
+
+
+
+--------------------------------------------------
+
+
+-- when the user starts the drag_rotate or move
+on mousedown me
+  
+  -- set the focus to the current object
+  -- Save current_object so that the exit frame can continue to monitor this
+  -- This enables the ring animation to keep pace with the frame
+  -- as oppose bringing in the animation commands into a "repeat while the stilldown..." loop
+  current_object = me
+  
+  --pause it from rotating
+  me.pause_flag = true
+  
+  if gControlMode = "move" or gControlMode = "resize" then
+    --set for moving and resizing offset too
+    gDragoffseth = the mouseh - sprite(me.myspritenum).loch
+    gDragoffsetv = the mousev - sprite(me.myspritenum).locv
+    if gControlMode = "resize" then
+      --show the yellow rectangle so that we know what the rect of the sprite it
+      sprite(106).rect = sprite(me.myspritenum).rect
+    end if
+  else
+    --don't have the "if" for the add mode b/c...
+    --this is taken care of in the mousedown handler from the objects in the menu
+    
+    
+    -- if not in any other mode, then we're drag rotating
+    -- set the offset for this drag...this is a fixed value for each drag
+    drag_rotate_offset = (mouseangle(sprite(current_object.myspritenum).loc)) - sprite(current_object.myspritenum).rotation
+    drag_rotate (current_object, drag_rotate_offset)
+    -- update old_angle so that later when we start dragging and setting a new speed, we'll have 
+    -- a reference point to compare to
+    gOld_angle = mouseangle(sprite(current_object.myspritenum).loc)
+    
+  end if
+  
+  
+  -- if we are in the Paint (aka Persistence mode) let the user toggle the trails
+--  if gPaint then
+--    sprite(me.myspritenum).trails = not (sprite(me.myspritenum).trails)
+--  end if
+  
+  
+end
+
+
+on SearchForClosestParent me, pobj, pClosestParent, pClosestDistance
+  distance = CalcDistance (me.myspritenum, pobj.myspritenum)
+  
+  if sprite(pobj.myspritenum).width >= sprite(pobj.myspritenum).height then
+    tolerance_dist = sprite(pobj.myspritenum).width * 1.5
+  else
+    tolerance_dist = sprite(pobj.myspritenum).height * 1.5
+  end if
+  
+  if distance < tolerance_dist then
+    --this guy is within the radius of a sprite
+    if distance < pClosestDistance then
+      -- we found a closer parent
+      if getone(me.mychildrenlist,pobj)<> 0 then 
+        -- this parent is a child of mine!
+        -- can't allow for this relationship
+      else
+        pClosestParent = pobj
+        pClosestDistance = distance
+      end if
+    end if
+  end if
+  
+  return([pClosestParent, pClosestDistance])
+  
+end
+
+on AddChild me, pchild
+  
+  --search mychildrenlist to see if it's already in the list, before adding
+  if getone(me.mychildrenlist, pchild) <> 0 then
+    --the child is already in my children list
+  else
+    add me.mychildrenlist, pchild
+  end if
+  
+  
+end
+
+on AddParent me, result
+  me.myParent = result[1]
+  me.distance_from_parent = result[2]
+  -- find the angular offset between my loc and the parent's rotation
+  me.angular_offset_from_parent = (mouseangle(sprite(me.myspritenum).loc)) -  ¬
+sprite(me.myParent.myspritenum).rotation
+end
+
+on RemoveChild me, pchild
+  repeat with obj in mychildrenlist
+    if obj = pchild then
+      deleteone mychildrenlist, pchild
+      exit repeat
+      --search no more.  the child is already mine
+    end if
+  end repeat
+end
+

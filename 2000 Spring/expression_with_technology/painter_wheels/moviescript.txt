@@ -1,0 +1,103 @@
+--movie script
+
+--Spring 2000, ITP, James Tu
+
+--constants
+global gEraser, gNumOfObjChoices, gstagewidth, gstageheight, gfirstmember, glastmember
+
+--variables
+global gAnimate, gPaint, nextavailsprite, gObjectlist, gAddingObject, current_object¬
+,gControlMode
+
+
+on startmovie
+  --set up constants
+  gEraser = 110
+  gNumOfObjChoices = 4
+  gstagewidth = the stageright - the stageleft
+  gstageheight = the stagebottom - the stagetop
+  gfirstmember = 30
+  glastmember = 39
+  initialize_stuff
+end
+
+on initialize_stuff
+  --stop animation
+  gAnimate = false
+  member("stop motion").text = "Start Motion"
+  
+  gPaint = false
+  member("paint").text = "Paint On"
+  --clear the saved Trails flag
+  gSaveTrailFlag = 0
+  
+  
+  nextavailsprite = 1
+  gObjectlist = [] -- the object list index is the same as the sprite number
+  -- that means that there could be zeros in the list!
+  gAddingObject = false
+  current_object=0
+  gClosestParent=0
+  gClosestDistance = 0
+  gControlMode = "manual rotate"
+  member("mouse function").text = "Drag Rotate"
+  member("show objects").text = "Next Object"
+  
+  --move placeholder objects off the stage
+  repeat with i = 1 to 50
+    sprite(i).loch = -800
+  end repeat
+  
+  --make the yellow rect go off stage
+  sprite(106).loch = -800
+  
+  --make the object white so that we can see it against a black background
+  sprite(gEraser+1).color = color(#rgb, 255,255,255)
+end
+
+
+on CalcDistance spriteA, spriteB
+  x=sprite(spriteA).loch - sprite(spriteB).loch
+  y=sprite(spriteA).locv - sprite(spriteB).locv
+  return sqrt(x*x + y*y)
+end
+
+--converts a degree into radians
+on degToRad pdeg
+  return (pdeg*pi/180)
+end
+
+--converts a radian into degrees of type integer
+on RadToDeg prad
+  return (integer(prad*180/pi))
+end
+
+
+
+
+-- Takes a location as the center point of rotation...for calculating angles
+-- will return an angle...could be > than 360.
+on mouseangle ploc
+  global  theangle, deltah, deltav -- for debugging
+  deltah= the mouseh - ploc.loch
+  deltav= the mousev - ploc.locv
+  -- tan = opp/adj = v/h
+  
+  if deltah = 0 then
+    -- handle situations when the angle is either 90 or 270...b/c atan(1/0) is undefined
+    if deltav > 0 then --mouse is below the center of the ring
+      theangle = 90
+    else --mouse is above the center of the ring
+      theangle = 270
+    end if
+  else
+    if deltah > 0 then
+      -- 360 + ( -90<x<90 )
+      theangle = ( 360 + RadToDeg(atan(float(deltav)/deltah)) )
+    else -- it must be that...deltah < 0
+      -- 180 + ( -90>x>90 )
+      theangle = ( 180 + RadToDeg(atan(float(deltav)/deltah)) )
+    end if
+  end if
+  return theangle
+end

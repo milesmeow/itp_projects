@@ -1,0 +1,44 @@
+--paint button
+
+--Spring 2000, ITP, James Tu
+
+global gPaint, gobjectlist, gEraser
+
+on mouseUp
+  --toggle start and stop animation flag each time the button is pressed
+  gPaint = not(gPaint)  
+  
+  --8/5...I changed this
+  --I reversed the action of the buttons...instead of the mode, it tells you what will
+  --happen if you click on the button
+  
+  --update the label of the button
+  if gPaint then
+    member("paint").text = "Paint Off"
+    repeat with obj in gobjectlist
+      if objectp(obj) then
+        sprite(obj.myspritenum).trails = true
+      end if
+    end repeat
+  else
+    member("paint").text = "Paint On"
+    --turn off trails for all objects
+    repeat with obj in gobjectlist
+      if objectp(obj) then
+        sprite(obj.myspritenum).trails = false
+      end if
+      --make the eraser visible
+      sprite(gEraser).visible = true
+    end repeat
+  end if
+  
+end
+
+
+on mouseenter
+  (member "paint").color = color (#rgb, 255,255,255)
+end
+
+on mouseleave
+  (member "paint").color = color (#rgb, 170,190,255)
+end
